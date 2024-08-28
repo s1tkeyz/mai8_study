@@ -1,0 +1,565 @@
+Лабораторная работа 8
+=====================
+Протокол выполнения (07.11.2022)
+
+
+0) ПОДГОТОВКА:
+	$ pwd
+	/mnt/study/labs/lab8
+
+	В рабочей директории создадим файлы lab8.c (главный код), my.c (реализация my.h), my.h (наш тестовый хедер)
+	$ cat lab8.c
+	#include "my.h"
+	#define N 8
+	int main(void) {
+        int a = N;
+        int b = foo(a);
+
+        float c = 28.7;
+
+        return 0;
+	}
+
+	$ cat my.c
+	#include "my.h"
+	int foo(int n) {
+        return n * 3;
+	}
+
+	void bar() {
+        __asm__("nop");
+	}
+
+	$ cat my.h
+	int foo(int n);
+	void bar();
+	
+
+1) ПРЕПРОЦЕССОР GCC (-Е): 
+	$ gcc -E -std=c99 -Wall -pedantic lab8.c my.c
+	# 0 "lab8.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "lab8.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "lab8.c" 2
+
+
+
+	int main(void) {
+	 int a = 8;
+	 int b = foo(a);
+
+	 float c = 28.7;
+
+	 return 0;
+	}
+	# 0 "my.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "my.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "my.c" 2
+	int foo(int n) {
+	 return n * 3;
+	}
+
+	void bar() {
+	 __asm__("nop");
+	}
+
+	Ломаем 1:
+	Заменим #define ... на #deine ...
+	Вывод препроцессора:
+	# 0 "lab8.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "lab8.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "lab8.c" 2
+	lab8.c:3:2: error: invalid preprocessing directive #deine
+		3 | #deine N 8
+		  |  ^~~~~
+
+
+
+	int main(void) {
+	 int a = N;
+	 int b = foo(a);
+
+	 float c = 28.7;
+
+	 return 0;
+	}
+	# 0 "my.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "my.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "my.c" 2
+	int foo(int n) {
+	 return n * 3;
+	}
+
+	void bar() {
+	 __asm__("nop");
+	}
+	Исправление 1: исправить директиву препроцессора	
+
+	Ломаем 2:
+	В #include впишем несуществующий хедер
+
+	# 0 "lab8.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "lab8.c"
+	lab8.c:1:10: fatal error: m.h: No such file or directory
+		1 | #include "m.h"
+		  |          ^~~~~
+	compilation terminated.
+	# 0 "my.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "my.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "my.c" 2
+	int foo(int n) {
+	 return n * 3;
+	}
+
+	void bar() {
+	 __asm__("nop");
+	}
+	Исправление 2: Указать существующий файл хедера
+
+	Ломаем 3:
+	Дополним lab8.c макросом минимума двух чисел: #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+	Сделаем в нём синтаксическу. ошибку: #define min(X, Y)  ((X) < Y) ? (X) : (Y))
+	Вывод:
+	# 0 "lab8.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "lab8.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "lab8.c" 2
+
+
+
+
+
+	int main(void) {
+	 int a = 8;
+	 int b = 33;
+	 int c = foo(((a) < b) ? (a) : (b)));
+
+	 float c = 28.7;
+
+	 return 0;
+	}
+	# 0 "my.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "my.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "my.c" 2
+	int foo(int n) {
+	 return n * 3;
+	}
+
+	void bar() {
+	 __asm__("nop");
+	}
+
+	Ошибки на данном этапе нет, но будет при компиляции.
+
+	Теперь  попробуем #define min(X, Y  ((X) < (Y) ? (X) : (Y)):
+	# 0 "lab8.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "lab8.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "lab8.c" 2
+	lab8.c:5:19: error: expected ',' or ')', found "("
+		5 | #define min(X, Y  ((X) < (Y) ? (X) : (Y))
+		  |                   ^
+
+
+
+
+
+	int main(void) {
+	 int a = 8;
+	 int b = 33;
+	 int c = foo(min(a, b));
+
+	 float c = 28.7;
+
+	 return 0;
+	}
+	# 0 "my.c"
+	# 0 "<built-in>"
+	# 0 "<command-line>"
+	# 1 "/usr/include/stdc-predef.h" 1 3 4
+	# 0 "<command-line>" 2
+	# 1 "my.c"
+	# 1 "my.h" 1
+	int foo(int n);
+
+	void bar();
+	# 2 "my.c" 2
+	int foo(int n) {
+	 return n * 3;
+	}
+
+	void bar() {
+	 __asm__("nop");
+	}
+	Исправление 3: Исправить синтаксис макроса
+
+
+2) КОМПИЛЯЦИЯ С (с ключом -S, C source -> Assembly)
+	Исходные файлы:
+
+	$ cat lab8.c
+	#include "my.h"
+
+	#define N 8
+
+	#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+
+	int main(void) {
+		    int a = N;
+		    int b = 33;
+		    int c = foo(min(a, b));
+
+		    float d = 28.764f;
+
+		    return 0;
+	}
+
+	$ cat my.c 
+	#include "my.h"
+	int foo(int n) {
+		return n * 3;
+	}
+
+	void bar() {
+		__asm__("nop");
+	}
+
+
+
+
+
+	Результат:
+	$ cat lab8.s
+		.file	"lab8.c"
+		.text
+		.globl	main
+		.type	main, @function
+	main:
+	.LFB0:
+		.cfi_startproc
+		pushq	%rbp
+		.cfi_def_cfa_offset 16
+		.cfi_offset 6, -16
+		movq	%rsp, %rbp
+		.cfi_def_cfa_register 6
+		subq	$16, %rsp
+		movl	$8, -16(%rbp)
+		movl	$33, -12(%rbp)
+		movl	-12(%rbp), %edx
+		movl	-16(%rbp), %eax
+		cmpl	%eax, %edx
+		cmovle	%edx, %eax
+		movl	%eax, %edi
+		call	foo@PLT
+		movl	%eax, -8(%rbp)
+		movss	.LC0(%rip), %xmm0
+		movss	%xmm0, -4(%rbp)
+		movl	$0, %eax
+		leave
+		.cfi_def_cfa 7, 8
+		ret
+		.cfi_endproc
+	.LFE0:
+		.size	main, .-main
+		.section	.rodata
+		.align 4
+	.LC0:
+		.long	1105599660
+		.ident	"GCC: (GNU) 12.2.0"
+		.section	.note.GNU-stack,"",@progbits
+		
+		
+	$ cat my.s
+		.file	"my.c"
+		.text
+		.globl	foo
+		.type	foo, @function
+	foo:
+	.LFB0:
+		.cfi_startproc
+		pushq	%rbp
+		.cfi_def_cfa_offset 16
+		.cfi_offset 6, -16
+		movq	%rsp, %rbp
+		.cfi_def_cfa_register 6
+		movl	%edi, -4(%rbp)
+		movl	-4(%rbp), %edx
+		movl	%edx, %eax
+		addl	%eax, %eax
+		addl	%edx, %eax
+		popq	%rbp
+		.cfi_def_cfa 7, 8
+		ret
+		.cfi_endproc
+	.LFE0:
+		.size	foo, .-foo
+		.globl	bar
+		.type	bar, @function
+	bar:
+	.LFB1:
+		.cfi_startproc
+		pushq	%rbp
+		.cfi_def_cfa_offset 16
+		.cfi_offset 6, -16
+		movq	%rsp, %rbp
+		.cfi_def_cfa_register 6
+	#APP
+	# 7 "my.c" 1
+		nop
+	# 0 "" 2
+	#NO_APP
+		nop
+		popq	%rbp
+		.cfi_def_cfa 7, 8
+		ret
+		.cfi_endproc
+	.LFE1:
+		.size	bar, .-bar
+		.ident	"GCC: (GNU) 12.2.0"
+		.section	.note.GNU-stack,"",@progbits
+
+
+	Сломаем ассемблирование синтаксической ошибкой в файле lab8.c:
+	$ gcc -S -std=c99 -Wall -pedantic lab8.c my.c
+	lab8.c: In function ‘main’:
+	lab8.c:9:9: error: expected ‘,’ or ‘;’ before ‘int’
+		9 |         int b = 33;
+		  |         ^~~
+	lab8.c:10:28: error: ‘b’ undeclared (first use in this function)
+	   10 |         int c = foo(min(a, b));
+		  |                            ^
+	lab8.c:5:28: note: in definition of macro ‘min’
+		5 | #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+		  |                            ^
+	lab8.c:10:28: note: each undeclared identifier is reported only once for each function it appears in
+	   10 |         int c = foo(min(a, b));
+		  |                            ^
+	lab8.c:5:28: note: in definition of macro ‘min’
+		5 | #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+		  |                            ^
+	lab8.c:12:15: warning: unused variable ‘d’ [-Wunused-variable]
+	   12 |         float d = 28.764f;
+		  |               ^
+	lab8.c:10:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   10 |         int c = foo(min(a, b));
+		  |             ^
+	Исправление 1: Исправитьсинтасическую ошибку
+
+	Сломаем двойными объявлениями функций/переменных;
+	$ gcc -S -std=c99 -Wall -pedantic lab8.c my.c
+	lab8.c:8:8: error: conflicting types for ‘f’; have ‘double()’
+		8 | double f() { return 0; }
+		  |        ^
+	lab8.c:7:5: note: previous definition of ‘f’ with type ‘int()’
+		7 | int f() { return 0; }
+		  |     ^
+	lab8.c: In function ‘main’:
+	lab8.c:16:13: error: conflicting types for ‘d’; have ‘int’
+	   16 |         int d = 555;
+		  |             ^
+	lab8.c:15:15: note: previous definition of ‘d’ with type ‘float’
+	   15 |         float d = 28.764f;
+		  |               ^
+	lab8.c:16:13: warning: unused variable ‘d’ [-Wunused-variable]
+	   16 |         int d = 555;
+		  |             ^
+	lab8.c:13:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   13 |         int c = foo(min(a, b));
+		  |             ^
+	Исправление 2: Убрать двойные объявления функций/переменных в файле lab8.c.
+
+	Закомментируем переменную a: (необъявленная переменная)
+	$ gcc -S -std=c99 -Wall -pedantic lab8.c my.c
+	lab8.c:8:5: error: redefinition of ‘f’
+		8 | int f(int n) { return n; }
+		  |     ^
+	lab8.c:7:5: note: previous definition of ‘f’ with type ‘int()’
+		7 | int f() { return 0; }
+		  |     ^
+	lab8.c: In function ‘main’:
+	lab8.c:13:25: error: ‘a’ undeclared (first use in this function)
+	   13 |         int c = foo(min(a, b));
+		  |                         ^
+	lab8.c:5:22: note: in definition of macro ‘min’
+		5 | #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+		  |                      ^
+	lab8.c:13:25: note: each undeclared identifier is reported only once for each function it appears in
+	   13 |         int c = foo(min(a, b));
+		  |                         ^
+	lab8.c:5:22: note: in definition of macro ‘min’
+		5 | #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+		  |                      ^
+	lab8.c:15:15: warning: unused variable ‘d’ [-Wunused-variable]
+	   15 |         float d = 28.764f;
+		  |               ^
+	lab8.c:13:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   13 |         int c = foo(min(a, b));
+		  |             ^
+	Исправление 3: Объявить необъявленную переменную
+
+
+3) АССЕМБЛИРОВАНИЕ (ключ -С, Assembly -> Object files)
+	Сломаем создание объектных файлов неверной ассемблерной вставкой в файле my.c:
+	__asm__("shfkh"); 
+	И запустим gcc с ключом -С. Результат:
+	lab8.c: In function ‘main’:
+	lab8.c:12:15: warning: unused variable ‘d’ [-Wunused-variable]
+	   12 |         float d = 28.764f;
+		  |               ^
+	lab8.c:10:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   10 |         int c = foo(min(a, b));
+		  |             ^
+	my.c: Assembler messages:
+	my.c:7: Error: no such instruction: `shfkh'
+	Исправление 1: Указать верную ассемблерную вставку
+
+
+4) КОМПАНОВЩИК (GNU Linker (ld), Object files -> ELF-executable)
+	Сломаем линковщик, забыв добавить my.c в компиляцию:
+	$ gcc -std=c99 -pedantic -Wall lab8.c
+	lab8.c: In function ‘main’:
+	lab8.c:12:15: warning: unused variable ‘d’ [-Wunused-variable]
+	   12 |         float d = 28.764f;
+		  |               ^
+	lab8.c:10:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   10 |         int c = foo(min(a, b));
+		  |             ^
+	/usr/bin/ld: /tmp/ccqYXNiT.o: in function `main':
+	lab8.c:(.text+0x28): undefined reference to `foo'
+	collect2: error: ld returned 1 exit status
+	Исправление 1: Добавить файл my.c в компиляцию
+
+	Определим точку входа main() в обоих файлах:
+	$ gcc -std=c99 -pedantic -Wall lab8.c my.c
+	lab8.c: In function ‘main’:
+	lab8.c:12:15: warning: unused variable ‘d’ [-Wunused-variable]
+	   12 |         float d = 28.764f;
+		  |               ^
+	lab8.c:10:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   10 |         int c = foo(min(a, b));
+		  |             ^
+	/usr/bin/ld: /tmp/ccgugUBJ.o: in function `main':
+	my.c:(.text+0x22): multiple definition of `main'; /tmp/ccfH8NdV.o:lab8.c:(.text+0x0): first defined here
+	collect2: error: ld returned 1 exit status
+	Исправление 2: Оставить единственную точку входа в одном из файлов
+
+	Сломаем линковщик несуществующей extern переменной:
+	$ cat lab8.c
+	#include "my.h"
+	#define N 8
+	#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+	extern int evar;
+	int main(void) {
+		int a = N;
+		int b = 33;
+		int c = foo(min(a, evar));
+		float d = 28.764f;
+		return 0;
+	}
+
+	$ gcc -std=c99 -pedantic -Wall lab8.c my.c
+	lab8.c: In function ‘main’:
+	lab8.c:13:15: warning: unused variable ‘d’ [-Wunused-variable]
+	   13 |         float d = 28.764f;
+		  |               ^
+	lab8.c:11:13: warning: unused variable ‘c’ [-Wunused-variable]
+	   11 |         int c = foo(min(a, evar));
+		  |             ^
+	lab8.c:10:13: warning: unused variable ‘b’ [-Wunused-variable]
+	   10 |         int b = 33;
+		  |             ^
+	/usr/bin/ld: /tmp/ccDuQ8Xa.o: in function `main':
+	lab8.c:(.text+0x1c): undefined reference to `evar'
+	collect2: error: ld returned 1 exit status
+	Исправление 3: Объявить нужную extern переменную где-либо
+
+
+5) RUNTIME ОШИБКИ
+	Получим традиционную ошибку сегментации при разыменовании пустого указателя:
+	$ cat sf.c
+	#include <stdio.h>
+	int main() {
+		int *p = NULL;
+		*p = 1;
+		return 0;	
+	}
+	$ gcc -std=c99 sf.c && ./a.out
+	Segmentation fault (core dumped)
+	Исправление 1: Указатель p не должен быть пустым
+	
+	Ошибка при делении на 0:
+	$ cat zd.c
+	#include <stdio.h>
+	int main() {
+		int p = 7;
+		p /= 0;
+		return 0;	
+	}
+	$ gcc -std=c99 zd.c && ./a.out
+	Floating point exception (core dumped)
+	Испраление 2: Не надо делить на 0

@@ -1,0 +1,291 @@
+Лабораторная работа 10
+######################
+
+0) ПОДГОТОВКА
+    Напишем небольшую рекурсивную программу на Си:
+    $ cat lab10.c
+        #include <stdio.h>
+        long int bar(long int n) {
+            if (n == 0)
+                return 1;
+            else if (n < 0)
+                return n - 1;
+            else if(n > 0 && n < 10)
+                return n + bar(n - 1);
+            else
+                return 2 * (n - 5) * bar(n - 5);
+        }
+        long int foo(long int n) {
+            if(n == 0)
+                return 0;
+            else if (n < 0)
+                return 1 - n;
+            else
+                return n + foo(n - 3) - (bar(n - 2) % 17);
+        }
+        int main(void) {
+            long int n = 5;
+            printf("%ld\n", foo(n));
+            return 0;
+        }
+    
+    Скомпилируем её с генерацией отладочной информации:
+    $ gcc -g -std=c99 -Wall -pedantic lab10.c
+
+    Таким образом получим исполняемый файл a.out
+
+
+1) ЗАПУСК GDB
+    Запускаем отладчик командой:
+    После системный сообщений нажимаем [Enter]:
+    $ gdb a.out 
+        ...
+        For help, type "help".
+        Type "apropos word" to search for commands related to "word"...
+        --Type <RET> for more, q to quit, c to continue without paging--
+        Reading symbols from a.out...
+
+
+2) ЛИСТИНГ ПРОГРАММЫ
+    Просмотрим код вокруг функции main:
+    $ (gdb) list main
+        18              return 1 - n;
+        19          else
+        20              return n + foo(n - 3) - (bar(n - 2) % 17);
+        21      }
+        22
+        23      int main(void) {
+        24          long int n = 5;
+        25          printf("%ld\n", foo(n));
+        26          return 0;
+        27      }
+    
+    Код около 3 строки (функции bar)
+    $ (gdb) list 3
+        1       #include <stdio.h>
+        2
+        3       long int bar(long int n) {
+        4           if (n == 0)
+        5               return 1;
+        6           else if (n < 0)
+        7               return n - 1;
+        8           else if(n > 0 && n < 10)
+        9               return n + bar(n - 1);
+        10          else
+
+
+3) RUNTIME DEBUG (NEXT / STEP):
+    Поставим точку на 25 строчке (вызове printf())
+    $ (gdb) b 25
+        Breakpoint 1 at 0x125c: file lab10.c, line 25.
+    $ (gdb) info break
+        Num     Type           Disp Enb Address            What
+        1       breakpoint     keep y   0x000000000000125c in main at lab10.c:25
+    
+    Запустим программу:
+    $ (gdb) run
+        Starting program: /mnt/study/labs/lab10/a.out 
+        [Thread debugging using libthread_db enabled]
+        Using host libthread_db library "/usr/lib/libthread_db.so.1".
+
+        Breakpoint 1, main () at lab10.c:25
+        25          printf("%ld\n", foo(n));
+    
+    Посмотрим значение локальных переменных:
+    $ (gdb) info locals
+        n = 5
+    
+    Посмотрим тип переменной n:
+    $ (gdb) ptype n
+        type = long
+    
+    Вычислим значение 7 + (n % 11):
+    $ (gdb) print 7+(n%11)
+        $1 = 12
+
+    Назначим значение переменной n равное 3:
+    $ (gdb) set var n = 3
+    $ (gdb) info locals
+        n = 3
+    
+    И продолжим выполнение кода до следующего breakpoint'а (его нет, т.е. выполнится до конца):
+    $ (gdb) c
+        Continuing.
+        1
+        [Inferior 1 (process 14312) exited normally]
+    
+    Снова запустим программу:
+    $ (gdb) run
+    
+    Получим остановку на той же 25 строке, на которой вызывается функция prinf(),
+    вызывающая рекурсию foo().
+
+    $ (gdb) step
+        foo (n=5) at lab10.c:15
+        15          if(n == 0) 
+
+    Видим, что step перешёл в функцию foo(), на строчку 15
+    Снова выполним step:
+
+    $ (gdb) step
+        17          else if (n < 0)
+    
+    Остановка на 17 строке.
+    
+    $ (gdb) step
+        20              return n + foo(n - 3) - (bar(n - 2) % 17);
+    $ (gdb) next
+        21      }
+    $ (gdb) step
+        1
+        main () at lab10.c:26
+        26          return 0;
+    $ (gdb) next
+        27      }
+    $ (gdb) step
+       [Inferior 1 (process 16420) exited normally] 
+    
+    Таким образом видно, что команда next выполняет следующую строку, не входя в вызываемые в ней другие функции,
+    а step выполняет следующую строку, при этом входя внутрь вызываемых функций.
+
+    ***
+    $ man gdb
+        ...
+        next
+           Execute next program line (after stopping); step over any function
+           calls in the line.
+        ...
+        step
+           Execute next program line (after stopping); step into any function
+           calls in the line.
+        ...
+    ***
+
+
+4) СТЕК ВЫЗОВОВ (Backtrace)
+    Установим точки остава на строках 4, 15 и 25.
+    $ (gdb) b 25
+        Breakpoint 1 at 0x125c: file lab10.c, line 25.
+    $ (gdb) b 3
+        Breakpoint 2 at 0x1146: file lab10.c, line 4.
+    $ (gdb) b 14
+        Breakpoint 3 at 0x11be: file lab10.c, line 15.
+    
+    Запустим программу и сразу посмотрим стек
+    $ (gdb) run
+        Starting program: /mnt/study/labs/lab10/a.out 
+        [Thread debugging using libthread_db enabled]
+        Using host libthread_db library "/usr/lib/libthread_db.so.1".
+
+        Breakpoint 1, main () at lab10.c:25
+        25          printf("%ld\n", foo(n));
+
+    $ (gdb) bt
+        #0  main () at lab10.c:25
+    
+    Теперь будем выполнять программу с помощью continue и смотреть стек
+    (перед каждым bt выполнялся с):
+
+    $ (gdb) bt
+        #0  foo (n=5) at lab10.c:15
+        #1  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) bt
+        #0  foo (n=2) at lab10.c:15
+        #1  0x00005555555551f1 in foo (n=5) at lab10.c:20
+        #2  0x0000555555555268 in main () at lab10.c:25  
+    
+    $ (gdb) bt
+        #0  foo (n=-1) at lab10.c:15
+        #1  0x00005555555551f1 in foo (n=2) at lab10.c:20
+        #2  0x00005555555551f1 in foo (n=5) at lab10.c:20
+        #3  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) bt
+        #0  bar (n=0) at lab10.c:4
+        #1  0x0000555555555209 in foo (n=2) at lab10.c:20
+        #2  0x00005555555551f1 in foo (n=5) at lab10.c:20
+        #3  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) bt
+        #0  bar (n=3) at lab10.c:4
+        #1  0x0000555555555209 in foo (n=5) at lab10.c:20
+        #2  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) bt
+        #0  bar (n=2) at lab10.c:4
+        #1  0x0000555555555183 in bar (n=3) at lab10.c:9
+        #2  0x0000555555555209 in foo (n=5) at lab10.c:20
+        #3  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) bt
+        #0  bar (n=1) at lab10.c:4
+        #1  0x0000555555555183 in bar (n=2) at lab10.c:9
+        #2  0x0000555555555183 in bar (n=3) at lab10.c:9
+        #3  0x0000555555555209 in foo (n=5) at lab10.c:20
+        #4  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) bt
+        #0  bar (n=0) at lab10.c:4
+        #1  0x0000555555555183 in bar (n=1) at lab10.c:9
+        #2  0x0000555555555183 in bar (n=2) at lab10.c:9
+        #3  0x0000555555555183 in bar (n=3) at lab10.c:9
+        #4  0x0000555555555209 in foo (n=5) at lab10.c:20
+        #5  0x0000555555555268 in main () at lab10.c:25
+    
+    $ (gdb) c
+        Continuing.
+        1
+        [Inferior 1 (process 17943) exited normally]
+
+    Статистика breakpoint'ов:
+    $ (gdb) info breakpoints
+        Num     Type           Disp Enb Address            What
+        1       breakpoint     keep y   0x000055555555525c in main at lab10.c:25
+                breakpoint already hit 1 time
+        2       breakpoint     keep y   0x0000555555555146 in bar at lab10.c:4
+                breakpoint already hit 5 times
+        3       breakpoint     keep y   0x00005555555551be in foo at lab10.c:15
+                breakpoint already hit 3 times
+    
+
+
+
+*Дополнение: прямая рекурсия с bar()
+#0  bar (n=0) at lab10.c:4
+#1  0x0000555555555183 in bar (n=1) at lab10.c:9
+#2  0x0000555555555183 in bar (n=2) at lab10.c:9
+#3  0x0000555555555183 in bar (n=3) at lab10.c:9
+#4  0x0000555555555183 in bar (n=4) at lab10.c:9
+#5  0x0000555555555183 in bar (n=5) at lab10.c:9
+#6  0x0000555555555268 in main () at lab10.c:25
+
+#0  bar (n=4) at lab10.c:12
+#1  0x0000555555555197 in bar (n=5) at lab10.c:9
+#2  0x0000555555555197 in bar (n=6) at lab10.c:9
+#3  0x0000555555555197 in bar (n=7) at lab10.c:9
+#4  0x0000555555555197 in bar (n=8) at lab10.c:9
+#5  0x0000555555555197 in bar (n=9) at lab10.c:9
+#6  0x00005555555551b8 in bar (n=14) at lab10.c:11
+#7  0x000055555555521e in foo (n=16) at lab10.c:20
+#8  0x0000555555555206 in foo (n=19) at lab10.c:20
+#9  0x0000555555555206 in foo (n=22) at lab10.c:20
+#10 0x0000555555555206 in foo (n=25) at lab10.c:20
+--Type <RET> for more, q to quit, c to continue without paging--
+#11 0x0000555555555206 in foo (n=28) at lab10.c:20
+#12 0x0000555555555206 in foo (n=31) at lab10.c:20
+#13 0x0000555555555206 in foo (n=34) at lab10.c:20
+#14 0x0000555555555206 in foo (n=37) at lab10.c:20
+#15 0x0000555555555206 in foo (n=40) at lab10.c:20
+#16 0x0000555555555206 in foo (n=43) at lab10.c:20
+#17 0x0000555555555206 in foo (n=46) at lab10.c:20
+#18 0x0000555555555206 in foo (n=49) at lab10.c:20
+#19 0x0000555555555206 in foo (n=52) at lab10.c:20
+#20 0x0000555555555206 in foo (n=55) at lab10.c:20
+#21 0x0000555555555206 in foo (n=58) at lab10.c:20
+--Type <RET> for more, q to quit, c to continue without paging--
+#22 0x0000555555555206 in foo (n=61) at lab10.c:20
+#23 0x0000555555555206 in foo (n=64) at lab10.c:20
+#24 0x0000555555555206 in foo (n=67) at lab10.c:20
+#25 0x0000555555555206 in foo (n=70) at lab10.c:20
+#26 0x000055555555529d in main () at lab10.c:30
